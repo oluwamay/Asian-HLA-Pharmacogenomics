@@ -22,23 +22,37 @@ plot(data=pca1, V3~V4)
 install.packages("ggplots2")
 pca1 <- read.table("plink.eigenvec",sep=" ",header=F)
 library("ggplot2")
- 
-#set complete genome as PCA2
+#Preliminary plot
+ggplot(data=pca1, aes(V3,V4)) + geom_point()
+#set complete genome as PCA2 and create a metadata table
 metadata <- read.table("complete_1000_genomes_sample_list_.tsv", sep ="\t", header = TRUE)
 #Merge PCA1 with PCA2
 merge_data <- merge(x= pca1,y = metadata, by.x = "V2", by.y = "Sample.name", all = F )
+
 #Create a coloured plot with ggplot
 
- ggplot(data=merge_data, aes(V3,V4,color = Population.name)) + geom_point()
+ ggplot(data=merge_data, aes(V3,V4,color = Population.name)) + geom_point() + xlab("Principal Component 1 (PC1)"
+                                                              + ylab("Principal Component 2 (PC2)" + ggtitle("PCA of selected Asian Populations")
 
-#Performing Linkage disequilibrium
+#Multidimensional Scaling Analysis
 ##Create a LD pruned set of markers
-
 plink --bfile asia --indep-pairwise 1000 10 0.05 --out prune1 
 
 #Calculate identity by descent score on pruned markers
+plink --bfile asia --extract prune1.prune.in --genome --out ibs1
+
 #Cluster individuals into homogenous groups
 plink --bfile asia --read-genome ibs1.genome --cluster --ppc 1e-3 --cc --mds-plot 2 --out strat1
+
+#Set strat1.mds as mds data
+mdsdata <- read.table("strat1.mds", header = TRUE)
+
+#Merge mdsdata with metadata
+merged_mds <- merge(x = mdsdata, y = metadata, by.x = "FID", by.y = "Sample.name", all = F)
+
+#Create scatter plot for merged_mds colored by population code
+ggplot(data=merged_mds, aes(C1, C2, color = population.code)) + geom_point() + ggtitle("Multidimensional Scaling Analysis")
+
 plink --bfile asia --chr 7 --from-kb 66 --to-kb 159078 --make-bed --out asia_c7
 plink --bfile asia --chr 14 --from-kb 19041  --to-kb 107273 --make-bed --out asia_c14
 plink --bfile asia --chr 21 --from-kb 9442 --to-kb 48094 --make-bed --out asia_c21
